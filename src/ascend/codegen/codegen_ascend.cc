@@ -63,8 +63,8 @@ bool IsSimdMergingCall(const CallNode *op,
   return true;
 }
 
-// CCE merging overloads validated on dav-3510. Keep the existing C API path
-// for other element types, including FP8 and 64-bit vector representations.
+// Merging support validated on dav-3510. Keep the C API wrapper path for other
+// element types, including FP8 and 64-bit vector representations.
 bool SupportsNativeSimdMerging(const std::string &name, DataType dtype) {
   const bool is_integer =
       (dtype.is_int() || dtype.is_uint()) &&
@@ -75,9 +75,8 @@ bool SupportsNativeSimdMerging(const std::string &name, DataType dtype) {
     return false;
   }
   if (name == "vdup") {
-    // CANN 9.2's scalar BF16 overload merges into an uninitialized temporary
-    // instead of the old destination. Vector broadcast uses a different
-    // overload.
+    // Keep scalar BF16 on the C API software-merge path because CANN 9.2 can
+    // merge into an uninitialized temporary instead of the old destination.
     return !dtype.is_bfloat16();
   }
   if (name == "vabs" || name == "vneg") {
@@ -1260,9 +1259,9 @@ bool CodeGenTileLangAscend::EmitSimdMergingCall(const CallNode *op,
     dtype = destination->args[0].dtype();
   }
 
-  // Use CCE merging for the validated overloads of these C API wrappers.
-  // Explicit zeroing + select can cause predicate spills in masked updates.
-  // Precision-specific SFU algorithms retain their software merging wrappers.
+  // Keep C API wrappers for dtype combinations that require software merging.
+  // Explicit zeroing plus selection can cause predicate spills in masked
+  // updates. Precision-specific SFU algorithms retain their wrappers.
   static const std::unordered_set<std::string> kCapiMergingOps = {
       "vadd",  "vsub",  "vmul",  "vdiv",  "vabsdif", "vmax",  "vmin",  "vand",
       "vor",   "vxor",  "vshl",  "vshr",  "vln",     "vsqrt", "vabs",  "vneg",

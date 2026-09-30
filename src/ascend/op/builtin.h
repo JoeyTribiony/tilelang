@@ -36,9 +36,9 @@ TVM_DLL const Op &conflict_hint();
  */
 TVM_DLL const Op &ascend_pipe_barrier();
 
-// Ascend SIMD raw CCE intrinsics (T.simd.* API).
-// TIR ops registered as tl.simd.<name>. Emit raw CCE intrinsics
-// (vadd/vld/vst/vfcvt/...) from __clang_cce_vector_intrinsics.h.
+// Ascend SIMD operations (T.simd.* API).
+// TIR ops registered as tl.simd.<name> lower through simd_inst adapters to the
+// corresponding asc_* functions declared by c_api/asc_simd.h.
 // Fragment registers use vector_<T> types; masks are vector_bool.
 
 // -- Mask

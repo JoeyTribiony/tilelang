@@ -1,13 +1,14 @@
-"""T.simd.* - Raw CCE vector intrinsics for Ascend SIMD programming.
+"""T.simd.* - Ascend SIMD operations with C API-backed lowering.
 
-Function names match the underlying CCE intrinsics directly.
+Function names preserve TileLang's SIMD surface while backend adapters map the
+operations to the corresponding ``asc_*`` C APIs.
 
 MODE_MERGING preserves inactive lanes of the mutable destination register.
-On Ascend 950, validated 8/16/32-bit operations use the CCE merging overloads;
-``vdupv`` maps to CCE's vector ``vdup`` overload. Scalar BF16 ``vdup`` retains
-software merging to work around CANN 9.2's inactive-lane bug. Precision-specific
-SFU algorithms also retain their wrappers, including the default exact FP32
-division and the ``ftz_false`` variants of ``vexp``, ``vln``, and ``vsqrt``.
+C API wrappers provide software merging for element types that require it.
+Scalar BF16 ``vdup`` retains software merging to work around CANN 9.2's
+inactive-lane bug. Precision-specific SFU algorithms also retain their wrappers,
+including the default exact FP32 division and the ``ftz_false`` variants of
+``vexp``, ``vln``, and ``vsqrt``.
 """
 
 from tvm import tirx
@@ -128,11 +129,11 @@ def update_mask(value, width=32):
 
 
 def _mask_bits(dtype_like) -> int:
-    """CCE predicate width (b8/b16/b32/b64) for a dtype's element type."""
+    """Ascend C API predicate width for a dtype's element type."""
     elem = str(dtype_like).split("x", 1)[0]
     if elem not in _ELEM_BITS:
         raise ValueError(f"Cannot infer default mask width for dtype '{dtype_like}'")
-    return max(_ELEM_BITS[elem], 8)  # CCE has no pset_b4; float4 -> b8
+    return max(_ELEM_BITS[elem], 8)  # The C API has no b4 predicate mask; float4 uses b8.
 
 
 # Auto default-mask cache: one bound pset per element-bit width, reused across maskless

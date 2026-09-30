@@ -406,7 +406,7 @@ def test_ascend_simd_vld_e2b_b16_extent():
     (load,) = calls(func, "tl.simd.vld")
     assert int(load.args[0].args[1]) == 8
     source = lower(func, target="ascend").kernel_source
-    # Latest ascend lowers E2B_B16 through vlds with a zero hardware offset.
+    # E2B_B16 lowers through asc_loadalign_brc_elem2datablock with a zero offset.
     assert "simd_inst::vlds_brc_elem2datablock<" in source
 
 

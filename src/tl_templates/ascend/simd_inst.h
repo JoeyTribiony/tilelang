@@ -77,9 +77,8 @@ template <typename FirstVec, typename SecondVec = FirstVec> struct vec_pair {
 
 template <typename T> using vec_t = typename vec<T>::type;
 
-// C APIs produce a zeroing result for masked register operations. Legalized
-// MODE_MERGING calls use this helper to preserve inactive destination lanes,
-// matching the software merge in the CCE intrinsics on dav-3510.
+// Masked C APIs produce zeroing results. Legalized MODE_MERGING calls use this
+// helper to preserve inactive destination lanes with an explicit C API merge.
 template <typename Vec>
 __simd_callee__ inline Vec merge_masked(Vec &dst, Vec result,
                                         vector_bool mask) {
@@ -189,8 +188,8 @@ __simd_callee__ inline void psts_pack(vector_bool src, __ubuf__ uint32_t *base,
   asc_storealign_pack(base, src, offset);
 }
 
-// Dual-dest memory load (ASC DIST_DINTLV_B16). Prefer ::vld(dst0,dst1,...)
-// which wraps ::vlds on dav-3510; matches asc_loadalign_v2_impl.h.
+// Dual-destination memory load (ASC DIST_DINTLV_B16) through
+// asc_loadalign_deintlv, matching asc_loadalign_v2_impl.h.
 template <typename T, typename Dist>
 __simd_callee__ inline vec_pair<vec_t<T>> vld_x2(__ubuf__ T *src, Dist dist) {
   vec_pair<vec_t<T>> dst;
@@ -285,8 +284,9 @@ __simd_callee__ inline vector_bool psel(vector_bool src_0, vector_bool src_1,
   return dst;
 }
 
-// Keep conversion dispatch on the CCE intrinsic to cover its full type matrix.
-// The trailing controls vary by dtype: part/round, optional rs/part, then mode.
+// Keep conversion dispatch centralized to cover the full type and control
+// matrix. The trailing controls vary by dtype: part/round, optional rs/part,
+// then mode.
 template <typename U, typename SrcVec, typename... Controls>
 __simd_callee__ inline vec_t<U> vcvt(SrcVec src, vector_bool mask,
                                      Controls... controls) {
@@ -762,8 +762,9 @@ __simd_callee__ inline SrcVec vsqz(SrcVec src, vector_bool mask, Mode mode) {
   return dst;
 }
 
-// vusqz: per-lane exclusive prefix count of mask; merge-mode needs pre-zeroed
-// Vd via vdup (a `{}` init lowers to a BUILD_VECTOR the backend rejects).
+// vusqz: per-lane exclusive prefix count of mask; merge-mode needs a
+// destination initialized through asc_duplicate_scalar (a `{}` init lowers to a
+// BUILD_VECTOR the backend rejects).
 template <typename T> __simd_callee__ inline vec_t<T> vusqz(vector_bool mask) {
   vec_t<T> dst;
   asc_duplicate_scalar(dst, static_cast<T>(0), mask);
